@@ -1,0 +1,5 @@
+name = Write Log
+description = Write Log.
+package = INITLAB
+version = 1.0-dev
+core = 7.x
