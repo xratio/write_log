@@ -23,7 +23,7 @@ function write_log_page_form($form, &$form_state) {
   global $user;
   $form['message'] = array(
     '#type' => 'textarea', 
-    '#title' => t('Message'), 
+    '#title' => t('Сообщение'), 
     '#default_value' => '', 
     '#size' => 60,  
     '#required' => TRUE,
@@ -31,6 +31,7 @@ function write_log_page_form($form, &$form_state) {
   
   $form['submit'] = array(
     '#type' => 'submit',
+	'#weight' => 10,
     '#value' => t('Send'),
 	'#submit' => array('write_log_page_submit'),
   );
@@ -39,10 +40,39 @@ function write_log_page_form($form, &$form_state) {
   if (user_is_anonymous()) {
     $form['name'] = array(
       '#type' => 'textfield', 
-      '#title' => t('Name'), 
+      '#title' => t('Имя'), 
       '#default_value' => '', 
       '#size' => 60,  
       '#required' => TRUE,
+    );
+	
+    $form['phone'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Телефон'),
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="anonymous"]' => array('unchecked' => TRUE),
+        ),
+       ),
+	   '#element_validate' => array('write_log_phone_element_validate'),
+	   '#description' => t('Ориентировано на российские мобильные + городские с кодом из 3 цифр: пример (+79261234567 | 89261234567)'),
+    );
+	
+	$form['email'] = array(
+      '#type' => 'textfield',
+      '#title' => t('E-mail'),
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="anonymous"]' => array('unchecked' => TRUE),
+        ),
+       ),
+	   '#element_validate' => array('write_log_email_element_validate'),
+    );
+
+    
+    $form['anonymous'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Анонимные пользователи могут указывать контактную информацию'),
     );
   }
   
@@ -54,10 +84,41 @@ function write_log_page_form($form, &$form_state) {
  */
 function write_log_page_submit($form, &$form_state) {
   global $user;
+  if (user_is_logged_in()){
+    $username = $user->name;
+  }else{
+	$username = $form_state['values']['name'];
+  }
   $wl_message = $form_state['values']['message'];
-  watchdog('write_log', $wl_message . $user->name);
-  drupal_set_message(t($user->name . '! Tanks for you log/message.'));
+  watchdog('write_log', '|' . $wl_message . '|' . $username);
+  drupal_set_message(t($username . '! Tanks for you log/message.'));
 
 }
-//
-//
+
+/**
+ * Implement e-mail validate.
+ */
+function write_log_email_element_validate($element, &$form_state, $form) {
+   if (!valid_email_address($element['#value'])) {
+     form_error($element, t('Please enter a valid email address.'));
+   }
+}
+
+
+/**
+ * Implement phone validate.
+ */
+function write_log_phone_element_validate($element, &$form_state, $form) {
+  $pattern = "#^((8|\+7)[\- ]?)?(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$#";
+  if(!preg_match($pattern, $element['#value'])){
+  form_error($element, t('Please enter a valid pone number address.'));
+  }
+}
+
+
+/**
+ * Implement comment button text.
+ */
+function write_log_form_comment_form_alter(&$form, &$form_state) {
+  $form['actions']['submit']['#value'] = t('Отправить комментарий на проверку');
+}
